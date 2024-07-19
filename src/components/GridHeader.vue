@@ -1,6 +1,6 @@
 <template>
-    <div class="bg-gray-500 text-white flex justify-between h-5 items-center text-sm px-2" @mousedown="onDragStart"
-        @mouseup="onDragStop">
+    <div class="bg-gray-800 text-white flex justify-between h-5 items-center text-sm px-2 rounded-t-sm"
+        @mousedown="onDragStart" @mouseup="onDragStop">
         <div class="text-left">{{ title }}</div>
         <div class="text-right">
             <div @mouseenter="onHoverEnter" @mouseleave="onHoverLeave">

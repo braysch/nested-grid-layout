@@ -1,54 +1,65 @@
 <template #item="{ item: dashboard }">
-    <div class="bg-black w-full select-none" ref="dashboard">
+    <div class="bg-green-800 w-full select-none" ref="dashboard">
         <GridHeader class="header" :type=0 title="Dashboard" :onAdd="addPanel" :onEdit="recompose"></GridHeader>
-        <GridLayout :layout="layout" :col-num="1" :row-height="30" :is-draggable="true" :is-resizable="true"
-            :on-drag-start="() => { console.log('start') }">
-            <template #item="{ item: panel }">
-                <div class="shadow-lg bg-gray-300 w-full h-full" :ref="'panel-' + panel.i">
-                    <GridHeader class="header" :type=1 :title="'Panel ' + panel.i" :onAdd="() => {
-                        addWidget(panel);
-                    }" :onDelete="() => {
-                        deletePanel(panel.i, layout);
-                    }" :onDragStart="() => { onDragStart(this.$refs['panel-' + panel.i]) }"
-                        :onDragStop="() => { onDragStop(this.$refs['panel-' + panel.i], () => { recompose() }) }">
-                    </GridHeader>
-                    <GridLayout :layout="panel.childLayout" :col-num="12" :row-height="30" :is-draggable="true"
-                        :is-resizable="true">
-                        <template #item="{ item: widget }">
-                            <div class="shadow-lg bg-blue-400 w-full min-h-full" :ref="'widget-' + widget.i">
-                                <GridHeader class="header" :type=2 :title="'Widget ' + widget.i" :onAdd="() => {
-                                    addComponent(widget, panel);
-                                }" :onDelete="() => {
-                                    deleteWidget(widget.i, panel);
-                                }" :onDragStart="() => { onDragStart(this.$refs['panel-' + panel.i]) }"
-                                    :onDragStop="() => { onDragStop(this.$refs['panel-' + panel.i], () => { adjustPanelHeight(panel) }) }">
+        <GridLayout :layout="layout" :col-num="1" :row-height="30" :is-draggable="true" :is-resizable="false"
+            @layout-updated="() => { 'dashboard layout updated!' }">
+            <GridItem class="w-full h-full rounded-sm bg-gray-300 shadow-offset" v-for="panel in this.layout"
+                :key="panel.i" :x="panel.x" :y="panel.y" :w="panel.w" :h="panel.h" :i="panel.i" :min-h="2"
+                :min-w="panel.minW" :max-w="panel.maxW" :drag-allow-from="'.header'" :data-panel-id="panel.i">
+                <GridHeader class="header" :type=1 :title="'Panel ' + panel.i" :onAdd="() => {
+                    addWidget(panel);
+                }" :onDelete="() => { deletePanel(panel.i, layout); }">
+                </GridHeader>
+                <GridLayout :layout="panel.childLayout" :col-num="12" :row-height="30" :is-draggable="true"
+                    :is-resizable="true" @layout-updated="() => {
+                        console.log('panel layout updated!')
+                        this.adjustPanelHeight(panel)
+                    }">
+                    <GridItem class="w-full h-full rounded-sm bg-white shadow-offset"
+                        v-for="widget in panel.childLayout" :key="widget.i" :x="widget.x" :y="widget.y" :w="widget.w"
+                        :h="widget.h" :i="widget.i" :min-h="widget.minH" :min-w="widget.minW" :max-w="widget.maxW"
+                        :max-h="widget.maxH" :drag-allow-from="'.header'" :data-widget-id="widget.i"
+                        v-on:mousedown="() => { updateZIndex(panel, widget) }"
+                        v-on:mouseup="() => { resetZIndex(panel, widget) }">
+                        <GridHeader class="header" :type=2 :title="'Widget ' + widget.i" :onAdd="() => {
+                            addComponent(widget);
+                        }" :onDelete="() => {
+                            deleteWidget(widget.i, panel);
+                        }">
+                        </GridHeader>
+                        <GridLayout v-model:layout="widget.childLayout" :col-num="12" :row-height="30"
+                            :is-draggable="true" :is-resizable="true" @layout-updated="() => {
+                                console.log('widget layout updated!')
+                                this.adjustWidgetHeight(widget, panel)
+                            }">
+                            <GridItem class="w-full h-full rounded-sm bg-green-400 shadow-offset"
+                                v-for="component in widget.childLayout" :key="component.i" :x="component.x"
+                                :y="component.y" :w="component.w" :h="component.h" :i="component.i"
+                                :min-h="component.minH" :min-w="component.minW" :max-w="component.maxW"
+                                :drag-allow-from="'.header'" v-on:mousedown="() => { updateZIndex(panel, widget) }"
+                                v-on:mouseup="() => { resetZIndex(panel, widget) }">
+                                <GridHeader class="header" :type=3 :title="'Component ' + component.i"
+                                    :isComponent="true" :onDelete="() => {
+                                        deleteComponent(component.i, widget);
+                                    }">
                                 </GridHeader>
-                                <GridLayout :layout="widget.childLayout" :col-num="12" :row-height="30"
-                                    :is-draggable="true" :is-resizable="true"
-                                    @resize-start="() => { console.log('resize start!') }">
-                                    <template #item="{ item: component }">
-                                        <div class="shadow-lg bg-green-200 w-full min-h-full"
-                                            :ref="'component-' + component.i">
-                                            <GridHeader class="header" :type=3 :title="'Component ' + component.i"
-                                                :isComponent="true" :onDelete="() => {
-                                                    deleteComponent(component.i, widget, panel);
-                                                }" :onDragStart="() => { onDragStart(this.$refs['panel-' + panel.i]) }"
-                                                :onDragStop="() => { onDragStop(this.$refs['panel-' + panel.i], () => { adjustWidgetHeight(widget, panel) }) }">
-                                            </GridHeader>
-                                            <div class="p-2">
-                                                content
-                                            </div>
-                                        </div>
-                                    </template>
-                                </GridLayout>
-                            </div>
-                        </template>
-                    </GridLayout>
-                </div>
-            </template>
+                                <div class="p-2">
+                                    Content
+                                </div>
+                            </GridItem>
+                        </GridLayout>
+                    </GridItem>
+                </GridLayout>
+            </GridItem>
         </GridLayout>
     </div>
 </template>
+
+<style scoped>
+.vgl-layout {
+    --vgl-placeholder-bg: green;
+}
+</style>
 
 <script lang="ts">
 import { ref, watch, onMounted } from 'vue';
@@ -56,10 +67,6 @@ import { reactive } from 'vue';
 import GridHeader from './GridHeader.vue'; // Ensure correct path
 import { GridLayout, GridItem } from 'grid-layout-plus';
 import { nextTick } from 'vue';
-
-onMounted(() => {
-
-})
 
 export default {
     name: 'NestedGridLayout',
@@ -77,7 +84,7 @@ export default {
     data() {
         return {
             layout: reactive([]),
-            delay: 0,
+            delay: 2000,
             dragging: false
         };
     },
@@ -87,29 +94,19 @@ export default {
         }
     },
     methods: {
-        onDragStart(panelRef) {
-            panelRef.parentElement.style.zIndex = "100"
-            console.log(panelRef.parentElement)
-
-            console.log("Dragging")
-            this.dragging = true;
-            document.addEventListener('mouseup', this.onDragStop);
+        updateZIndex(panel, widget) {
+            const panelElement = this.$refs.dashboard.querySelector(`[data-panel-id="${panel.i}"]`);
+            const widgetElement = panelElement.querySelector(`[data-widget-id="${widget.i}"]`);
+            panelElement.style.zIndex = "100"
+            widgetElement.style.zIndex = '50'
         },
-        onDragStop(panelRef, todo: Function) {
-            if (this.dragging) {
-                panelRef.parentElement.style.zIndex = ""
-                console.log(panelRef)
-                console.log("No more dragging")
-                this.dragging = false;
-                document.removeEventListener('mouseup', this.onDragStop);
-                todo()
-            }
-        },
-        itemModifyStart(text) {
-            console.log(text + " start")
-        },
-        itemModifyEnd(text) {
-            console.log(text + " end")
+        resetZIndex(panel, widget) {
+            console.log("reset")
+            const panelElement = this.$refs.dashboard.querySelector(`[data-panel-id="${panel.i}"]`);
+            //const widgetElement = panelElement.querySelector(`[data-widget-id="${widget.i}"]`);
+            panelElement.style.zIndex = "0"
+            console.log(panelElement)
+            //widgetElement.style.zIndex = '0'
         },
         addPanel() {
             this.layout.push({
@@ -121,7 +118,6 @@ export default {
                 minW: 12,
                 i: this.getNextPanelIndex(this.layout),
                 childLayout: [],
-                dragAllowFrom: ".header"
             });
         },
         deletePanel(id, layout) {
@@ -130,19 +126,23 @@ export default {
                 layout.splice(index, 1)
             }
         },
-        adjustPanelHeight(panelLayout) {
-            console.log("Adjust panel height!")
-            let adjustedHeight = this.getNextY(panelLayout.childLayout) + 1
-            panelLayout.h = adjustedHeight > 2 ? adjustedHeight : 2
+        adjustItemHeight(layout) {
+            var adjustedHeight = this.getNextY(layout.childLayout) + 1
+            layout.h = adjustedHeight > 2 ? adjustedHeight : 2
+            layout.minH = layout.h
+        },
+        adjustWidgetHeight(widget, panel) {
+            widget.maxH = this.getNextY(widget.childLayout) + 1 > 2 ? this.getNextY(widget.childLayout) + 1 : 2
+            console.log("Adjust widget height")
+            this.adjustItemHeight(widget)
+            panel.childLayout = [...panel.childLayout] // need this for widgets to update properly when adding a component
+            this.adjustItemHeight(panel)
             this.recompose()
         },
-        adjustWidgetHeight(widgetLayout, panelLayout) {
-            console.log("Adjust widget height!")
-            let adjustedHeight = this.getNextY(widgetLayout.childLayout) + 1
-            widgetLayout.h = adjustedHeight > 2 ? adjustedHeight : 2
-            widgetLayout.minH = widgetLayout.h
-            // widgetLayout.maxH = widgetLayout.h
-            this.adjustPanelHeight(panelLayout)
+        adjustPanelHeight(panel) {
+            console.log("Adjust panel height")
+            this.adjustItemHeight(panel)
+            this.recompose()
         },
         addWidget(panel) {
             let position = this.getNextXY(panel.childLayout)
@@ -152,23 +152,20 @@ export default {
                 w: 3,
                 h: 2,
                 minH: 2,
-                // maxH: 2,
+                maxH: 2,
                 minW: 3,
                 maxW: 12,
                 i: this.getNextWidgetIndex(this.layout),
                 childLayout: [],
-                dragAllowFrom: ".header"
             });
-            this.adjustPanelHeight(panel)
         },
         deleteWidget(id, panel) {
             const index = panel.childLayout.findIndex(widget => widget.i === id)
             if (index != -1) {
                 panel.childLayout.splice(index, 1)
             }
-            setTimeout(() => this.adjustPanelHeight(panel), this.delay)
         },
-        addComponent(widget, panel) {
+        addComponent(widget) {
             widget.childLayout.push({
                 x: 0,
                 y: this.getNextY(widget.childLayout),
@@ -178,23 +175,13 @@ export default {
                 minW: 12,
                 i: this.getNextComponentIndex(this.layout),
                 childLayout: null,
-                dragAllowFrom: ".header"
             });
-            // this seems kind of redundant, but right now, this is a solution
-            // to make it so the widget height updates when a new component is made
-            setTimeout(() => this.adjustWidgetHeight(widget, panel), this.delay)
-            setTimeout(() => panel.childLayout = [...panel.childLayout], this.delay)
-            setTimeout(() => this.adjustPanelHeight(panel), this.delay)
-
         },
-        deleteComponent(id, widget, panel) {
+        deleteComponent(id, widget) {
             const index = widget.childLayout.findIndex(widget => widget.i === id)
             if (index != -1) {
                 widget.childLayout.splice(index, 1)
             }
-            setTimeout(() => this.adjustWidgetHeight(widget, panel), this.delay)
-            setTimeout(() => panel.childLayout = [...panel.childLayout], this.delay)
-            setTimeout(() => this.adjustPanelHeight(panel), this.delay)
         },
         getNextY(layout) {
             let max_y = 0
